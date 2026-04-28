@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VAB — Daily OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c10;
+  --surface:#13131a;
+  --surface2:#1a1a24;
+  --border:#ffffff0f;
+  --border2:#ffffff18;
+  --text:#eeeef5;
+  --muted:#7777aa;
+  --dim:#44445a;
+  --gold:#f5c842;
+  --gold2:#e8a020;
+  --teal:#2dd4bf;
+  --rose:#f87171;
+  --violet:#a78bfa;
+  --sky:#38bdf8;
+  --green:#4ade80;
+  --orange:#fb923c;
+  --font-head:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* NOISE OVERLAY */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")}
+
+/* TOP BAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:56px;background:rgba(12,12,16,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem}
+.topbar-logo{font-family:var(--font-head);font-size:1rem;font-weight:800;letter-spacing:0.08em;color:var(--gold)}
+.topbar-date{font-size:0.78rem;color:var(--muted);font-weight:300}
+.topbar-progress{display:flex;align-items:center;gap:0.75rem;font-size:0.78rem;color:var(--muted)}
+.progress-bar{width:120px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--teal));border-radius:2px;transition:width 0.4s ease;width:0%}
+
+/* LAYOUT */
+.wrapper{max-width:1100px;margin:0 auto;padding:80px 1.5rem 4rem;position:relative;z-index:1}
+
+/* HERO */
+.hero{padding:3rem 0 2rem;border-bottom:1px solid var(--border)}
+.hero-label{font-size:0.7rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:0.75rem}
+.hero-title{font-family:var(--font-head);font-size:clamp(2.5rem,6vw,4rem);font-weight:800;line-height:1.05;letter-spacing:-0.02em;margin-bottom:1rem}
+.hero-title span{color:var(--gold)}
+.hero-sub{font-size:1rem;color:var(--muted);font-weight:300;max-width:480px;line-height:1.7;margin-bottom:2rem}
+.hero-stats{display:flex;gap:2rem;flex-wrap:wrap}
+.hstat{text-align:left}
+.hstat-num{font-family:var(--font-head);font-size:1.6rem;font-weight:700;color:var(--text)}
+.hstat-label{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em}
+
+/* TABS */
+.tabs{display:flex;gap:0.25rem;padding:1.5rem 0 0;flex-wrap:wrap;position:sticky;top:56px;z-index:90;background:var(--bg);padding-bottom:1rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
+.tab{padding:0.45rem 1rem;border-radius:8px;font-size:0.8rem;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--muted);background:none;transition:all 0.2s;font-family:var(--font-body)}
+.tab:hover{color:var(--text);border-color:var(--border2)}
+.tab.active{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+
+/* SECTIONS */
+.section{display:none;animation:fadeUp 0.35s ease}
+.section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.sec-title{font-family:var(--font-head);font-size:1.5rem;font-weight:700;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.6rem}
+.sec-desc{font-size:0.875rem;color:var(--muted);margin-bottom:1.75rem;line-height:1.6;font-weight:300}
+
+/* CHECKLIST GRID */
+.check-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0.75rem}
+.check-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;display:flex;align-items:flex-start;gap:0.85rem;cursor:pointer;transition:border-color 0.2s,background 0.2s;user-select:none}
+.check-item:hover{border-color:var(--border2);background:var(--surface2)}
+.check-item.done{border-color:#ffffff14;opacity:0.55}
+.check-item.done .check-label{text-decoration:line-through;color:var(--muted)}
+.checkbox{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--dim);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;background:none}
+.check-item.done .checkbox{background:var(--green);border-color:var(--green)}
+.checkbox svg{display:none;width:12px;height:12px}
+.check-item.done .checkbox svg{display:block}
+.check-body{flex:1;min-width:0}
+.check-label{font-size:0.9rem;font-weight:500;margin-bottom:0.2rem;color:var(--text)}
+.check-meta{font-size:0.75rem;color:var(--muted);font-weight:300;line-height:1.5}
+.check-tag{display:inline-block;padding:0.15rem 0.5rem;border-radius:4px;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem}
+.tag-morning{background:rgba(245,200,66,0.12);color:var(--gold)}
+.tag-night{background:rgba(167,139,250,0.12);color:var(--violet)}
+.tag-health{background:rgba(74,222,128,0.12);color:var(--green)}
+.tag-mind{background:rgba(56,189,248,0.12);color:var(--sky)}
+.tag-finance{background:rgba(45,212,191,0.12);color:var(--teal)}
+.tag-3week{background:rgba(251,146,60,0.12);color:var(--orange)}
+
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-block{display:flex;gap:1.25rem;padding:1.25rem 0;border-bottom:1px solid var(--border);position:relative}
+.tl-block:last-child{border-bottom:none}
+.tl-time{width:80px;flex-shrink:0;font-family:var(--font-head);font-size:0.8rem;font-weight:600;color:var(--gold);padding-top:2px}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;background:var(--dim)}
+.tl-dot.gold{background:var(--gold)}
+.tl-dot.teal{background:var(--teal)}
+.tl-dot.violet{background:var(--violet)}
+.tl-dot.rose{background:var(--rose)}
+.tl-dot.sky{background:var(--sky)}
+.tl-dot.green{background:var(--green)}
+.tl-content h4{font-size:0.9rem;font-weight:600;margin-bottom:0.25rem}
+.tl-content p{font-size:0.8rem;color:var(--muted);font-weight:300;line-height:1.6}
+
+/* PLACEMENT SECTION */
+.placement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem;margin-bottom:2rem}
+.pl-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;transition:border-color 0.2s}
+.pl-card:hover{border-color:var(--border2)}
+.pl-card-header{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem}
+.pl-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.pl-card-title{font-family:var(--font-head);font-size:1rem;font-weight:700}
+.pl-card-sub{font-size:0.75rem;color:var(--muted)}
+.pl-items{list-style:none;display:flex;flex-direction:column;gap:0.6rem}
+.pl-items li{font-size:0.82rem;color:var(--muted);padding-left:1rem;position:relative;line-height:1.55;font-weight:300}
+.pl-items li::before{content:'→';position:absolute;left:0;color:var(--gold);font-size:0.75rem}
+.pl-items li strong{color:var(--text);font-weight:500}
+
+.week-plan{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem}
+.week-plan h3{font-family:var(--font-head);font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--gold)}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0.5rem}
+.day-col{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.4rem;text-align:center}
+.day-name{font-size:0.65rem;font-weight:600;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem}
+.day-task{font-size:0.68rem;color:var(--text);line-height:1.4;font-weight:300}
+
+/* COMMUNICATION SECTION */
+.comm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem;margin-bottom:2rem}
+.comm-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+.comm-day{font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--sky);margin-bottom:0.35rem}
+.comm-title{font-size:0.95rem;font-weight:600;margin-bottom:0.75rem}
+.comm-tips{list-style:none;display:flex;flex-direction:column;gap:0.5rem}
+.comm-tips li{font-size:0.8rem;color:var(--muted);padding-left:1rem;position:relative;line-height:1.55;font-weight:300}
+.comm-tips li::before{content:'◆';position:absolute;left:0;color:var(--sky);font-size:0.5rem;top:4px}
+
+/* JOURNAL SECTION */
+.journal-guide{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-bottom:1.25rem}
+.journal-guide h3{font-family:var(--font-head);font-size:1.05rem;font-weight:700;margin-bottom:0.5rem}
+.journal-guide p{font-size:0.85rem;color:var(--muted);line-height:1.7;font-weight:300;margin-bottom:1rem}
+.prompts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:0.75rem;margin-top:1rem}
+.prompt-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem}
+.prompt-num{font-family:var(--font-head);font-size:1.4rem;font-weight:800;color:var(--border2);margin-bottom:0.25rem}
+.prompt-text{font-size:0.82rem;color:var(--muted);line-height:1.55;font-weight:300;font-style:italic}
+
+/* TRACKER SECTION */
+.tracker-row{display:flex;gap:0.5rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap}
+.tracker-label{font-size:0.85rem;font-weight:500;width:120px;flex-shrink:0}
+.tracker-dots{display:flex;gap:0.4rem;flex-wrap:wrap}
+.tdot{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:transparent}
+.tdot:hover{border-color:var(--border2)}
+.tdot.filled{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+.tdot.water-fill{background:var(--sky);border-color:var(--sky)}
+.tdot.step-fill{background:var(--green);border-color:var(--green)}
+.tracker-count{font-size:0.8rem;color:var(--muted);margin-left:0.5rem}
+
+/* FINANCE */
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-bottom:1.5rem}
+.fin-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+.fin-card h4{font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-size:0.7rem}
+.fin-card .amount{font-family:var(--font-head);font-size:1.6rem;font-weight:700;margin-bottom:0.25rem}
+.fin-card .fin-note{font-size:0.78rem;color:var(--muted);font-weight:300}
+.fin-items{list-style:none;display:flex;flex-direction:column;gap:0.5rem}
+.fin-items li{font-size:0.82rem;color:var(--muted);padding-left:1rem;position:relative;font-weight:300}
+.fin-items li::before{content:'₹';position:absolute;left:0;color:var(--gold);font-size:0.75rem}
+
+/* RESET BTN */
+.reset-btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;border:1px solid var(--border);border-radius:8px;font-size:0.78rem;color:var(--muted);cursor:pointer;background:none;font-family:var(--font-body);transition:all 0.2s;margin-bottom:1.5rem}
+.reset-btn:hover{border-color:var(--rose);color:var(--rose)}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .week-grid{grid-template-columns:repeat(4,1fr)}
+  .topbar-progress{display:none}
+  .hero-stats{gap:1.25rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">VAB · Daily OS</div>
+  <div class="topbar-date" id="topbar-date"></div>
+  <div class="topbar-progress">
+    <span id="progress-text">0 / 0 done</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <div class="hero">
+    <div class="hero-label">Your Personal Operating System</div>
+    <h1 class="hero-title">Win the day,<br><span>every day.</span></h1>
+    <p class="hero-sub">A complete daily system built for you — health, mind, placement prep, and growth. Check off your day, track your habits, and journal your thoughts.</p>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hstat-num" id="streak-count">0</div><div class="hstat-label">Day Streak</div></div>
+      <div class="hstat"><div class="hstat-num" id="today-pct">0%</div><div class="hstat-label">Today Done</div></div>
+      <div class="hstat"><div class="hstat-num">26</div><div class="hstat-label">Habits Tracked</div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('checklist')">☀️ Today</button>
+    <button class="tab" onclick="switchTab('schedule')">🕐 Schedule</button>
+    <button class="tab" onclick="switchTab('placement')">💼 Placement</button>
+    <button class="tab" onclick="switchTab('comm')">🗣 Communication</button>
+    <button class="tab" onclick="switchTab('journal')">📓 Journal</button>
+    <button class="tab" onclick="switchTab('trackers')">📊 Trackers</button>
+    <button class="tab" onclick="switchTab('finance')">💰 Finance</button>
+  </div>
+
+  <!-- TODAY CHECKLIST -->
+  <div class="section active" id="tab-checklist">
+    <div class="sec-title">☀️ Today's Checklist</div>
+    <p class="sec-desc">Check off each habit as you complete it. Your progress saves automatically. Reset each morning.</p>
+    <button class="reset-btn" onclick="resetAll()">↺ Reset for new day</button>
+
+    <div style="margin-bottom:1.25rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem">🌅 Morning Routine</div>
+      <div class="check-grid" id="morning-checks"></div>
+    </div>
+    <div style="margin-bottom:1.25rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem">⚡ Active & Health</div>
+      <div class="check-grid" id="health-checks"></div>
+    </div>
+    <div style="margin-bottom:1.25rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem">🧠 Mind & Growth</div>
+      <div class="check-grid" id="mind-checks"></div>
+    </div>
+    <div style="margin-bottom:1.25rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem">🌙 Night Routine</div>
+      <div class="check-grid" id="night-checks"></div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div class="section" id="tab-schedule">
+    <div class="sec-title">🕐 Daily Schedule</div>
+    <p class="sec-desc">Your ideal day, hour by hour. Built around peak energy and deep work windows.</p>
+    <div class="timeline" id="timeline-block"></div>
+  </div>
+
+  <!-- PLACEMENT -->
+  <div class="section" id="tab-placement">
+    <div class="sec-title">💼 Placement Prep System</div>
+    <p class="sec-desc">Your complete off-campus job hunt blueprint. Follow this daily and you will be interview-ready in 4–6 weeks.</p>
+
+    <div class="week-plan">
+      <h3>📅 Weekly Placement Schedule</h3>
+      <div class="week-grid" id="week-grid"></div>
+    </div>
+
+    <div class="placement-grid" id="placement-grid"></div>
+  </div>
+
+  <!-- COMMUNICATION -->
+  <div class="section" id="tab-comm">
+    <div class="sec-title">🗣 Communication Improvement Plan</div>
+    <p class="sec-desc">A 7-day rotating cycle of focused communication drills. Do one session daily — 20–30 min is enough. Consistency beats intensity.</p>
+    <div class="comm-grid" id="comm-grid"></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-top:0.5rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem">📌 Always-On Habits</div>
+      <div class="check-grid">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;font-size:0.82rem;color:var(--muted);line-height:1.65;font-weight:300">🎙 <strong style="color:var(--text)">Record yourself for 2 min</strong> every day — read aloud, explain a concept, or retell your day. Listen back. Notice filler words (um, like, basically, so).</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;font-size:0.82rem;color:var(--muted);line-height:1.65;font-weight:300">📰 <strong style="color:var(--text)">Read 1 news article aloud</strong> in English every morning — trains pacing, pronunciation, and vocabulary simultaneously.</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;font-size:0.82rem;color:var(--muted);line-height:1.65;font-weight:300">🪞 <strong style="color:var(--text)">Speak to a mirror</strong> for 5 min — answer "tell me about yourself" or your project. Eye contact, posture, expression — all count in interviews.</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;font-size:0.82rem;color:var(--muted);line-height:1.65;font-weight:300">✍️ <strong style="color:var(--text)">Write one email or message</strong> in formal English per day — to a recruiter, senior, or mock HR scenario. Deliberate writing sharpens speaking too.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div class="section" id="tab-journal">
+    <div class="sec-title">📓 How to Journal</div>
+    <p class="sec-desc">Journaling is not a diary. It's a tool for self-awareness, clarity, and emotional processing. Here's exactly how to do it.</p>
+    <div class="journal-guide">
+      <h3>The method — 10 minutes, every night</h3>
+      <p>Sit somewhere quiet. Open a notebook or a notes app. No need for perfect sentences — raw thoughts are fine. The point is to <em>externalize what's in your head</em> so you can look at it clearly. Start with 5 minutes and work up.</p>
+      <p><strong style="color:var(--text)">Three sections every night:</strong></p>
+      <ol style="padding-left:1.25rem;display:flex;flex-direction:column;gap:0.5rem;font-size:0.85rem;color:var(--muted);font-weight:300;line-height:1.65">
+        <li><strong style="color:var(--text)">Gratitude (2 min)</strong> — Write 3 specific things you're grateful for today. Not generic ("my family") — specific ("mom called and asked how I was"). This rewires your brain toward positivity over time.</li>
+        <li><strong style="color:var(--text)">Reflection (5 min)</strong> — What happened today? What went well? What felt hard? What do you wish you'd done differently? No judgment — just honest observation.</li>
+        <li><strong style="color:var(--text)">Intention (3 min)</strong> — What is the ONE thing that would make tomorrow a win? Write your top 3 tasks for tomorrow. This moves you from reactive to intentional.</li>
+      </ol>
+    </div>
+    <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem;margin-top:1.5rem">💬 Journal Prompts (use when stuck)</div>
+    <div class="prompts-grid" id="prompts-grid"></div>
+  </div>
+
+  <!-- TRACKERS -->
+  <div class="section" id="tab-trackers">
+    <div class="sec-title">📊 Daily Trackers</div>
+    <p class="sec-desc">Tap the circles to track your water intake, steps, and habits across the day. These reset each day.</p>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:1.25rem">💧 Water Intake — Target: 8 glasses</div>
+      <div class="tracker-row">
+        <span class="tracker-label">Glasses</span>
+        <div class="tracker-dots" id="water-dots"></div>
+        <span class="tracker-count" id="water-count">0 / 8</span>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:1.25rem">👟 Steps — Target: 10,000</div>
+      <div class="tracker-row">
+        <span class="tracker-label">x 1000 steps</span>
+        <div class="tracker-dots" id="steps-dots"></div>
+        <span class="tracker-count" id="steps-count">0 / 10k</span>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.5rem">📖 Pages Read Today</div>
+      <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;font-weight:300">Target: 10+ pages. Each dot = 2 pages.</p>
+      <div class="tracker-row">
+        <span class="tracker-label">Pages (×2)</span>
+        <div class="tracker-dots" id="pages-dots"></div>
+        <span class="tracker-count" id="pages-count">0 / 10+</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANCE -->
+  <div class="section" id="tab-finance">
+    <div class="sec-title">💰 Finance Tracker</div>
+    <p class="sec-desc">Track your daily spending, build awareness, and build the money habit before you start earning big.</p>
+    <div class="fin-grid">
+      <div class="fin-card">
+        <h4>Monthly Budget</h4>
+        <div class="amount" style="color:var(--green)">₹ — set yours</div>
+        <div class="fin-note">Write your monthly allowance/budget here and track daily spends against it.</div>
+      </div>
+      <div class="fin-card">
+        <h4>Key Daily Rule</h4>
+        <div class="amount" style="color:var(--gold);font-size:1.1rem;margin-top:0.25rem">Every rupee counts now</div>
+        <div class="fin-note" style="margin-top:0.5rem;line-height:1.6">The habit you build tracking ₹50 today is the same habit that tracks ₹50,000 later. Start now.</div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem">
+      <div class="sec-title" style="font-size:1rem;margin-bottom:0.75rem">📋 Daily Finance Checklist</div>
+      <ul class="fin-items" style="gap:0.75rem">
+        <li style="color:var(--text)"><strong>Log every expense</strong> — even chai and auto fare. Use Google Sheets, Notion, or a notes app. Categories: Food, Transport, Subscription, Misc.</li>
+        <li style="color:var(--text)"><strong>Check your UPI/bank balance once</strong> — not obsessively, just awareness. Know where you stand daily.</li>
+        <li style="color:var(--text)"><strong>Identify one unnecessary spend this week</strong> — and cut it next week. One decision per week compounds fast.</li>
+        <li style="color:var(--text)"><strong>Save first, spend second</strong> — even ₹500/month from now builds discipline. The amount doesn't matter, the habit does.</li>
+        <li style="color:var(--text)"><strong>Weekly review every Sunday</strong> — total spends vs budget. No guilt, just data. Adjust next week.</li>
+        <li style="color:var(--text)"><strong>Learn one finance concept per week</strong> — SIP, emergency fund, compound interest, tax basics. YouTube (Ankur Warikoo, CA Rachana) is free.</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- end wrapper -->
+
+<script>
+// DATA
+const morningItems = [
+  {id:'wakeup',label:'Wake Up Early',meta:'Before 6:30 AM — no snooze. Place phone across the room.',tag:'morning'},
+  {id:'bed',label:'Make Your Bed',meta:'First win of the day. 2 minutes. Sets a "done" mindset.',tag:'morning'},
+  {id:'water',label:'Drink Water',meta:'500ml immediately after waking. Ends overnight dehydration.',tag:'morning'},
+  {id:'meditate',label:'Meditate',meta:'10–15 min. Use Headspace, Insight Timer, or just breathe and observe.',tag:'mind'},
+  {id:'creatine',label:'Take Creatine',meta:'3–5g with water. Best taken consistently, same time daily.',tag:'health'},
+  {id:'vitaminE',label:'Vitamin E Supplement',meta:'Take with breakfast or a light meal for best absorption.',tag:'health'},
+  {id:'skincare_m',label:'Morning Skincare',meta:'Cleanser → Moisturiser → SPF. 5 minutes. Protect your skin.',tag:'morning'},
+  {id:'brush_m',label:'Brush Teeth (Morning)',meta:'2 minutes, fluoride toothpaste. Non-negotiable.',tag:'morning'},
+];
+const healthItems = [
+  {id:'workout',label:'Workout',meta:'45–60 min strength training. Progressive overload is the goal.',tag:'health'},
+  {id:'boxing',label:'Boxing',meta:'Shadow boxing / bag work / drills. Great for reflexes and stress.',tag:'health'},
+  {id:'running',label:'Running (Tue / Thu / Sat)',meta:'3× per week only. 20–30 min at comfortable pace. Rest days matter.',tag:'health'},
+  {id:'steps',label:'10,000 Steps',meta:'Walk between tasks, post-meals, or add a dedicated walk.',tag:'health'},
+  {id:'bath_m',label:'Morning Bath',meta:'Cold or contrast shower. Improves alertness and recovery.',tag:'morning'},
+];
+const mindItems = [
+  {id:'baba',label:'Baba Book / Spiritual Reading',meta:'Start the day with something that grounds you. 10–15 min.',tag:'mind'},
+  {id:'gk',label:'GK / Current Affairs',meta:'10 min: read 3–5 news headlines. Use Inshorts or The Hindu.',tag:'mind'},
+  {id:'comm_practice',label:'Communication Practice',meta:'Check the Communication tab for today\'s drill. 20–30 min.',tag:'mind'},
+  {id:'placement',label:'Placement Prep Block',meta:'2–3 hour deep work block. DSA + project revision + applications.',tag:'mind'},
+  {id:'read',label:'Read 10+ Pages',meta:'Any book — fiction, non-fiction, self-help. Just read.',tag:'mind'},
+  {id:'parents',label:'Call Parents',meta:'Even 5 minutes. They miss you. Do it.',tag:'mind'},
+];
+const nightItems = [
+  {id:'journal',label:'Journal (10 min)',meta:'Gratitude → Reflection → Tomorrow\'s intention. See Journal tab.',tag:'night'},
+  {id:'bath_n',label:'Night Bath',meta:'Warm bath/shower before bed. Signals body to wind down.',tag:'night'},
+  {id:'skincare_n',label:'Night Skincare',meta:'Cleanser → Moisturiser (+ retinol if you use it). Repair overnight.',tag:'night'},
+  {id:'brush_n',label:'Brush Teeth (Night)',meta:'Before bed. Non-negotiable. Your future self thanks you.',tag:'night'},
+  {id:'finance',label:'Track Finances',meta:'Log today\'s expenses. 5 minutes. See Finance tab.',tag:'finance'},
+  {id:'water_track',label:'Log Water Intake',meta:'Check if you hit 8 glasses. Track in the Trackers tab.',tag:'health'},
+];
+
+const schedule = [
+  {time:'5:30',dot:'gold',title:'Wake Up + Make Bed',desc:'Alarm goes off. No snooze. Make your bed immediately. Drink 500ml water.'},
+  {time:'5:45',dot:'gold',title:'Morning Ritual Block',desc:'Meditate (10 min) → Morning skincare → Brush → Creatine + Vitamin E'},
+  {time:'6:15',dot:'teal',title:'Baba Book + GK',desc:'Spiritual reading for grounding (15 min) → Read GK/news headlines (10 min)'},
+  {time:'6:45',dot:'violet',title:'Workout + Boxing',desc:'Strength training (45 min) + Boxing/shadow boxing (15 min). Push hard.'},
+  {time:'8:00',dot:'sky',title:'Morning Bath + Breakfast',desc:'Cold shower. Eat a proper breakfast — protein, carbs. Fuel the day.'},
+  {time:'8:30',dot:'gold',title:'Deep Work — Placement Prep (Block 1)',desc:'DSA problems (LeetCode) → 1.5 hours. Phone away. Full focus.'},
+  {time:'10:00',dot:'teal',title:'Break + Communication Practice',desc:'Short break. Then 30 min communication drill (see Communication tab).'},
+  {time:'10:30',dot:'violet',title:'Deep Work — Placement Prep (Block 2)',desc:'Project revision / resume applications / system design concepts — 1.5 hours.'},
+  {time:'12:00',dot:'sky',title:'Lunch + Walk',desc:'Eat well. Walk for 20–30 min after lunch. Phone calls / podcasts are fine here.'},
+  {time:'13:00',dot:'gold',title:'Learning Block',desc:'Read 10+ pages → GK follow-up → Watch 1 placement/skill video.'},
+  {time:'14:30',dot:'rose',title:'Rest / Nap (optional)',desc:'20 min max. Set an alarm. Recharges afternoon productivity.'},
+  {time:'15:00',dot:'teal',title:'Deep Work — Block 3',desc:'Freelance exploration / personal project / apply to 5–10 jobs. Output-focused.'},
+  {time:'17:00',dot:'green',title:'Running (Tue/Thu/Sat) or Walk',desc:'3× per week: 25 min run. Other days: 30 min walk to hit 10k steps.'},
+  {time:'17:45',dot:'violet',title:'Call Parents',desc:'Daily 5–10 min call. No excuses. They matter more than any habit here.'},
+  {time:'18:00',dot:'sky',title:'Free Time / Hobbies',desc:'Unstructured time. Watch something, game, socialize — guilt-free rest.'},
+  {time:'19:30',dot:'gold',title:'Dinner',desc:'Eat early. Stop eating by 8pm ideally. Digestion affects sleep quality.'},
+  {time:'20:00',dot:'teal',title:'Wind-Down Prep',desc:'Finance tracking → Night skincare → Brush teeth → Night bath.'},
+  {time:'21:00',dot:'violet',title:'Journal (10 min)',desc:'Gratitude → Reflection → Tomorrow\'s 3 tasks. Pen and paper preferred.'},
+  {time:'21:15',dot:'rose',title:'No Screens — Reading',desc:'Read your 10 pages here if not done earlier. Calm the mind before sleep.'},
+  {time:'22:00',dot:'dim',title:'Lights Out',desc:'8 hours sleep = better workouts, better memory, better mood. Non-negotiable.'},
+];
+
+const weekPlan = [
+  {day:'Mon',tasks:['DSA','Resume Apply','Mock HR Q']},
+  {day:'Tue',tasks:['DSA','Run','System Design']},
+  {day:'Wed',tasks:['DSA','Project','LeetCode']},
+  {day:'Thu',tasks:['DSA','Run','Mock Interview']},
+  {day:'Fri',tasks:['DSA','Apply 10+','Network']},
+  {day:'Sat',tasks:['DSA','Run','Review Week']},
+  {day:'Sun',tasks:['Rest','Plan Week','Reflect']},
+];
+
+const placementCards = [
+  {icon:'🧮',color:'rgba(108,99,255,0.15)',title:'DSA Daily',sub:'2–3 problems every day',items:[
+    '<strong>Week 1–2:</strong> Arrays, Strings, Hashmaps — LeetCode Easy/Medium',
+    '<strong>Week 3–4:</strong> Trees, Linked Lists, Recursion, Stacks/Queues',
+    '<strong>Week 5–6:</strong> Dynamic Programming, Graphs, Sliding Window',
+    'Use the "blind 75" list on LeetCode as your core problem set',
+    'Time yourself — aim to solve Mediums in under 25 min',
+    'After each problem: read top-voted solution even if you solved it',
+  ]},
+  {icon:'🏗',color:'rgba(45,212,191,0.15)',title:'System Design Basics',sub:'1 concept per week',items:[
+    'Week 1: REST API design, HTTP methods, status codes',
+    'Week 2: Database design — SQL vs NoSQL, indexing, normalization',
+    'Week 3: Caching, load balancing, CDN concepts',
+    'Week 4: Design a URL shortener / Design a chat system',
+    'Resource: Grokking System Design (free on GitHub), Alex Xu\'s book',
+    'Even basic system design separates you from 80% of freshers',
+  ]},
+  {icon:'📋',color:'rgba(251,146,60,0.15)',title:'Project Mastery',sub:'Know every line of your work',items:[
+    'Re-read all 3 projects — code + README + architecture',
+    'Be able to explain: what it does, why you built it, every design choice',
+    'Prep for: "what would you add?", "what was hardest?", "how would you scale it?"',
+    'Add a proper README to each GitHub repo with screenshots',
+    'Deploy at least 1 project live (Vercel/Render/HuggingFace Spaces)',
+    'Practice explaining each project in 2 min flat — time yourself',
+  ]},
+  {icon:'📬',color:'rgba(248,113,113,0.15)',title:'Daily Job Applications',sub:'Apply to 10–15 roles per day',items:[
+    'Platforms: LinkedIn, Naukri, Wellfound (AngelList), Internshala',
+    'Target: Zoho, Freshworks, Razorpay, Chargebee, Postman, Hasura',
+    'Set job alerts for "SDE-1 fresher", "Junior Developer", "Software Engineer 0–1 yr"',
+    'Track every application in a Google Sheet: company, role, date, status',
+    'Follow up after 7 days if no response — a short, polite message',
+    'Referrals &gt; cold apply. DM 3 VIT seniors per week on LinkedIn',
+  ]},
+  {icon:'🗣',color:'rgba(56,189,248,0.15)',title:'Interview Prep',sub:'Prepare before calls come in',items:[
+    'Practice "Tell me about yourself" — 90 sec version, polished',
+    'Prep STAR stories: situation, task, action, result — for 5 key experiences',
+    'Know your resume cold — every line will be questioned',
+    'Mock interview with a friend weekly — uncomfortable but essential',
+    'CS fundamentals: OOP pillars, DBMS ACID, OS scheduling, TCP/IP basics',
+    'Pramp.com and Interviewing.io for free mock interviews',
+  ]},
+  {icon:'🔗',color:'rgba(167,139,250,0.15)',title:'LinkedIn & Networking',sub:'Visibility is everything off-campus',items:[
+    'Optimize LinkedIn: headline, about section, all 3 projects added',
+    'Post once a week — a project update, learning, or insight. Builds visibility.',
+    'Connect with 10 recruiters/engineers per day with a short note',
+    'Message VIT alumni at target companies asking for referrals',
+    'Engage with posts in your domain — comments get you noticed',
+    'Turn on "Open to Work" visible to recruiters only',
+  ]},
+];
+
+const commCards = [
+  {day:'Day 1 — Monday',title:'Vocabulary & Word Power',tips:[
+    'Learn 5 new words from WordHippo or Merriam-Webster. Write each in a sentence.',
+    'Replace vague words in your speech: "good" → "efficient/insightful/compelling"',
+    'Subscribe to "A.Word.A.Day" email. 2 min daily, huge compound effect.',
+    'Read a paragraph from any English book aloud. Focus on pronunciation.',
+  ]},
+  {day:'Day 2 — Tuesday',title:'Structured Speaking (PREP Method)',tips:[
+    'PREP = Point → Reason → Example → Point. Use this for every answer.',
+    'Pick a random topic (AI, cricket, your city) and speak for 2 min using PREP.',
+    'Record it. Listen back. Count your filler words (um, uh, like, basically).',
+    'Aim to answer every interview question using this structure.',
+  ]},
+  {day:'Day 3 — Wednesday',title:'Active Listening',tips:[
+    'Watch a 10 min TED Talk. Summarize it in your own words — no notes.',
+    'Practice: don\'t interrupt. Let the other person finish fully before responding.',
+    'Paraphrase what you heard: "So what you\'re saying is..." — builds connection.',
+    'Notice your own habits: do you think of replies while someone\'s still talking?',
+  ]},
+  {day:'Day 4 — Thursday',title:'Professional English Writing',tips:[
+    'Write one cold LinkedIn message to a recruiter or senior. Keep it under 80 words.',
+    'Practice email structure: greeting → context (1 line) → ask → thank you → sign-off.',
+    'Avoid: "kindly revert", "do the needful", "please reply ASAP". These are red flags.',
+    'Use Grammarly on everything you write for 2 weeks — it trains you passively.',
+  ]},
+  {day:'Day 5 — Friday',title:'Mock HR Interview Practice',tips:[
+    'Answer these out loud, recorded: "Tell me about yourself", "Why this company?", "Strengths/weaknesses"',
+    'Watch your pacing — 90–120 words per minute is ideal. Not too fast, not slow.',
+    'Smile while speaking on calls — it literally changes your vocal tone and warmth.',
+    'Prep a 2-min "project pitch" for each of your 3 projects. Practice today.',
+  ]},
+  {day:'Day 6 — Saturday',title:'Group Discussion & Debate Skills',tips:[
+    'Join a Toastmasters virtual meeting (free, online) or practice with a friend.',
+    'Discuss a current topic with someone — practice making a point without being aggressive.',
+    'Signals of confident communication: steady eye contact, no crossed arms, upright posture.',
+    'Learn transition phrases: "Building on that...", "To add to your point...", "On the other hand..."',
+  ]},
+  {day:'Day 7 — Sunday',title:'Review & Reflection',tips:[
+    'Listen to 1 recording from this week. What improved? What still needs work?',
+    'Write 3 communication wins from the week — things you said well.',
+    'Identify your #1 communication habit to fix next week. One thing at a time.',
+    'Watch 15 min of a speaker you admire. Just observe — pacing, pauses, gestures.',
+  ]},
+];
+
+const prompts = [
+  {num:'01',text:'What is one thing I did today that I\'m genuinely proud of?'},
+  {num:'02',text:'What emotion dominated today? Where did it come from?'},
+  {num:'03',text:'What\'s one thing I\'m avoiding and why?'},
+  {num:'04',text:'If I could redo one moment from today, what would I change?'},
+  {num:'05',text:'What am I most afraid of right now, and is that fear rational?'},
+  {num:'06',text:'What does the best version of me look like one year from now?'},
+  {num:'07',text:'Who do I need to thank, apologize to, or reconnect with?'},
+  {num:'08',text:'What habit, if done every day, would change my life most?'},
+  {num:'09',text:'What am I telling myself that might not be true?'},
+  {num:'10',text:'What would I do if I knew I couldn\'t fail?'},
+  {num:'11',text:'Three small things that made today worth living.'},
+  {num:'12',text:'What drains my energy and what gives me energy?'},
+];
+
+// RENDER FUNCTIONS
+function renderCheck(item, gridId) {
+  const grid = document.getElementById(gridId);
+  const done = localStorage.getItem('check_'+item.id) === '1';
+  const div = document.createElement('div');
+  div.className = 'check-item' + (done ? ' done' : '');
+  div.id = 'ci_'+item.id;
+  div.onclick = () => toggleCheck(item.id);
+  div.innerHTML = `
+    <div class="checkbox">
+      <svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="2,6 5,9 10,3"/>
+      </svg>
+    </div>
+    <div class="check-body">
+      <div class="check-tag tag-${item.tag}">${item.tag}</div>
+      <div class="check-label">${item.label}</div>
+      <div class="check-meta">${item.meta}</div>
+    </div>`;
+  grid.appendChild(div);
+}
+
+function toggleCheck(id) {
+  const current = localStorage.getItem('check_'+id) === '1';
+  localStorage.setItem('check_'+id, current ? '0' : '1');
+  const el = document.getElementById('ci_'+id);
+  el.classList.toggle('done', !current);
+  updateProgress();
+}
+
+function updateProgress() {
+  const allItems = [...morningItems,...healthItems,...mindItems,...nightItems];
+  const done = allItems.filter(i => localStorage.getItem('check_'+i.id) === '1').length;
+  const total = allItems.length;
+  const pct = Math.round(done/total*100);
+  document.getElementById('progress-text').textContent = `${done} / ${total} done`;
+  document.getElementById('progress-fill').style.width = pct+'%';
+  document.getElementById('today-pct').textContent = pct+'%';
+}
+
+function resetAll() {
+  if(!confirm('Reset all checkboxes for a new day?')) return;
+  [...morningItems,...healthItems,...mindItems,...nightItems].forEach(i => {
+    localStorage.removeItem('check_'+i.id);
+    const el = document.getElementById('ci_'+i.id);
+    if(el) el.classList.remove('done');
+  });
+  updateProgress();
+}
+
+function renderTimeline() {
+  const tl = document.getElementById('timeline-block');
+  schedule.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'tl-block';
+    div.innerHTML = `<div class="tl-time">${s.time}</div><div class="tl-dot ${s.dot}"></div><div class="tl-content"><h4>${s.title}</h4><p>${s.desc}</p></div>`;
+    tl.appendChild(div);
+  });
+}
+
+function renderWeekPlan() {
+  const g = document.getElementById('week-grid');
+  weekPlan.forEach(d => {
+    const div = document.createElement('div');
+    div.className = 'day-col';
+    div.innerHTML = `<div class="day-name">${d.day}</div>${d.tasks.map(t=>`<div class="day-task">${t}</div>`).join('')}`;
+    g.appendChild(div);
+  });
+}
+
+function renderPlacement() {
+  const g = document.getElementById('placement-grid');
+  placementCards.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'pl-card';
+    div.innerHTML = `
+      <div class="pl-card-header">
+        <div class="pl-icon" style="background:${c.color}">${c.icon}</div>
+        <div><div class="pl-card-title">${c.title}</div><div class="pl-card-sub">${c.sub}</div></div>
+      </div>
+      <ul class="pl-items">${c.items.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+    g.appendChild(div);
+  });
+}
+
+function renderComm() {
+  const g = document.getElementById('comm-grid');
+  commCards.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'comm-card';
+    div.innerHTML = `<div class="comm-day">${c.day}</div><div class="comm-title">${c.title}</div><ul class="comm-tips">${c.tips.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+    g.appendChild(div);
+  });
+}
+
+function renderPrompts() {
+  const g = document.getElementById('prompts-grid');
+  prompts.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'prompt-card';
+    div.innerHTML = `<div class="prompt-num">${p.num}</div><div class="prompt-text">${p.text}</div>`;
+    g.appendChild(div);
+  });
+}
+
+function renderTrackers() {
+  // Water
+  const wdots = document.getElementById('water-dots');
+  for(let i=0;i<8;i++){
+    const d = document.createElement('div');
+    d.className = 'tdot' + (localStorage.getItem('water_'+i)==='1' ? ' water-fill' : '');
+    d.textContent = '💧';
+    d.style.color = d.classList.contains('water-fill') ? 'var(--bg)' : 'transparent';
+    d.onclick = () => {
+      const on = localStorage.getItem('water_'+i)==='1';
+      localStorage.setItem('water_'+i, on?'0':'1');
+      d.classList.toggle('water-fill', !on);
+      d.style.color = !on ? 'var(--bg)' : 'transparent';
+      updateTrackerCounts();
+    };
+    wdots.appendChild(d);
+  }
+  // Steps
+  const sdots = document.getElementById('steps-dots');
+  for(let i=0;i<10;i++){
+    const d = document.createElement('div');
+    d.className = 'tdot' + (localStorage.getItem('steps_'+i)==='1' ? ' step-fill' : '');
+    d.textContent = '👟';
+    d.style.color = d.classList.contains('step-fill') ? 'var(--bg)' : 'transparent';
+    d.onclick = () => {
+      const on = localStorage.getItem('steps_'+i)==='1';
+      localStorage.setItem('steps_'+i, on?'0':'1');
+      d.classList.toggle('step-fill', !on);
+      d.style.color = !on ? 'var(--bg)' : 'transparent';
+      updateTrackerCounts();
+    };
+    sdots.appendChild(d);
+  }
+  // Pages
+  const pdots = document.getElementById('pages-dots');
+  for(let i=0;i<10;i++){
+    const d = document.createElement('div');
+    const filled = localStorage.getItem('pages_'+i)==='1';
+    d.className = 'tdot' + (filled ? ' filled' : '');
+    d.textContent = '📄';
+    d.style.color = filled ? 'var(--bg)' : 'transparent';
+    d.onclick = () => {
+      const on = localStorage.getItem('pages_'+i)==='1';
+      localStorage.setItem('pages_'+i, on?'0':'1');
+      d.classList.toggle('filled', !on);
+      d.style.color = !on ? 'var(--bg)' : 'transparent';
+      updateTrackerCounts();
+    };
+    pdots.appendChild(d);
+  }
+  updateTrackerCounts();
+}
+
+function updateTrackerCounts() {
+  const w = Array.from({length:8},(_,i)=>localStorage.getItem('water_'+i)==='1').filter(Boolean).length;
+  const s = Array.from({length:10},(_,i)=>localStorage.getItem('steps_'+i)==='1').filter(Boolean).length;
+  const p = Array.from({length:10},(_,i)=>localStorage.getItem('pages_'+i)==='1').filter(Boolean).length;
+  document.getElementById('water-count').textContent = `${w} / 8`;
+  document.getElementById('steps-count').textContent = `${s*1000} / 10k`;
+  document.getElementById('pages-count').textContent = `${p*2} / 10+`;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function setDate() {
+  const d = new Date();
+  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
+  document.getElementById('topbar-date').textContent = d.toLocaleDateString('en-IN', opts);
+}
+
+function updateStreak() {
+  const today = new Date().toDateString();
+  const lastDay = localStorage.getItem('last_streak_day');
+  let streak = parseInt(localStorage.getItem('streak') || '0');
+  if(lastDay !== today) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    if(lastDay === yesterday.toDateString()) streak++;
+    else if(!lastDay) streak = 1;
+    else streak = 1;
+    localStorage.setItem('streak', streak);
+    localStorage.setItem('last_streak_day', today);
+  }
+  document.getElementById('streak-count').textContent = streak;
+}
+
+// INIT
+morningItems.forEach(i => renderCheck(i, 'morning-checks'));
+healthItems.forEach(i => renderCheck(i, 'health-checks'));
+mindItems.forEach(i => renderCheck(i, 'mind-checks'));
+nightItems.forEach(i => renderCheck(i, 'night-checks'));
+renderTimeline();
+renderWeekPlan();
+renderPlacement();
+renderComm();
+renderPrompts();
+renderTrackers();
+setDate();
+updateProgress();
+updateStreak();
+</script>
+</body>
+</html>
